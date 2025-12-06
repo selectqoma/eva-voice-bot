@@ -1,0 +1,2043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceBot Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a26;
+            --bg-card: #16161f;
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+            --accent-glow: rgba(99, 102, 241, 0.3);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: rgba(148, 163, 184, 0.1);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Animated background */
+        .bg-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(217, 70, 239, 0.04) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Layout */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--accent-gradient);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            -webkit-text-fill-color: white;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-section-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            padding: 8px 12px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .nav-item:hover {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--accent-gradient);
+            color: white;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .nav-item svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .user-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .user-card:hover {
+            background: var(--bg-card);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .user-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-email {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 32px;
+            min-height: 100vh;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            outline: none;
+        }
+
+        .btn-primary {
+            background: var(--accent-gradient);
+            color: white;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px var(--accent-glow);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card);
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .btn-ghost:hover {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--text-primary);
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+
+        .btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .form-select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 18px;
+            padding-right: 40px;
+        }
+
+        /* Grid */
+        .grid {
+            display: grid;
+            gap: 24px;
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .grid-4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        @media (max-width: 1200px) {
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+            .grid-3 { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
+        }
+
+        /* Bot Cards */
+        .bot-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bot-card-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .bot-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: var(--radius-md);
+            background: var(--accent-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .bot-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .bot-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .bot-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .status-dot.inactive {
+            background: var(--text-muted);
+        }
+
+        .bot-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .bot-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .bot-meta-item svg {
+            width: 16px;
+            height: 16px;
+            opacity: 0.7;
+        }
+
+        .bot-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        /* Create Bot Card */
+        .create-bot-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            border: 2px dashed var(--border-color);
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .create-bot-card:hover {
+            border-color: var(--accent-primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .create-bot-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .create-bot-card:hover .create-bot-icon {
+            background: var(--accent-gradient);
+            transform: scale(1.1);
+        }
+
+        .create-bot-icon svg {
+            width: 28px;
+            height: 28px;
+            color: var(--text-muted);
+        }
+
+        .create-bot-card:hover .create-bot-icon svg {
+            color: white;
+        }
+
+        .create-bot-text {
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        /* Auth Pages */
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 440px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 48px;
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.5);
+        }
+
+        .auth-logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .auth-logo .logo {
+            justify-content: center;
+            font-size: 1.8rem;
+        }
+
+        .auth-title {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .auth-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 24px 0;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 24px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .auth-footer a {
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            transform: translateY(20px) scale(0.95);
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.show .modal {
+            transform: translateY(0) scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: var(--error);
+            color: white;
+        }
+
+        .modal-body {
+            padding: 24px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 24px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-tertiary);
+            padding: 4px;
+            border-radius: var(--radius-md);
+            margin-bottom: 24px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            border: none;
+            background: transparent;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+        }
+
+        .tab.active {
+            background: var(--accent-gradient);
+            color: white;
+            box-shadow: 0 2px 10px var(--accent-glow);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Voice Selection */
+        .voice-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .voice-option {
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .voice-option:hover {
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+
+        .voice-option.selected {
+            border-color: var(--accent-primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .voice-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .voice-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Flow Builder Preview */
+        .flow-canvas {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            min-height: 400px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .flow-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .flow-placeholder svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* Node Types */
+        .flow-node {
+            position: absolute;
+            min-width: 180px;
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            cursor: move;
+            user-select: none;
+            transition: box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .flow-node:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .flow-node.selected {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .flow-node-header {
+            padding: 12px 16px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .flow-node-body {
+            padding: 12px 16px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .node-type-start .flow-node-header {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%);
+            color: var(--success);
+        }
+
+        .node-type-message .flow-node-header {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(99, 102, 241, 0.1) 100%);
+            color: var(--accent-primary);
+        }
+
+        .node-type-question .flow-node-header {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.1) 100%);
+            color: var(--warning);
+        }
+
+        .node-type-action .flow-node-header {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%);
+            color: var(--accent-secondary);
+        }
+
+        .node-type-end .flow-node-header {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%);
+            color: var(--error);
+        }
+
+        /* Flow toolbar */
+        .flow-toolbar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .flow-toolbar .btn {
+            padding: 8px 12px;
+            font-size: 0.8rem;
+        }
+
+        /* Connection lines (SVG) */
+        .flow-connections {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .flow-line {
+            stroke: var(--text-muted);
+            stroke-width: 2;
+            fill: none;
+        }
+
+        /* Loading state */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .toast {
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 300px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success {
+            border-color: var(--success);
+        }
+
+        .toast.error {
+            border-color: var(--error);
+        }
+
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .toast.success .toast-icon { color: var(--success); }
+        .toast.error .toast-icon { color: var(--error); }
+
+        /* Hidden utility */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+
+    <!-- Auth View -->
+    <div id="authView" class="auth-container">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <div class="logo">
+                    <div class="logo-icon">🎙️</div>
+                    <span>VoiceBot Studio</span>
+                </div>
+            </div>
+
+            <!-- Login Form -->
+            <div id="loginForm">
+                <h2 class="auth-title">Welcome back</h2>
+                <p class="auth-subtitle">Sign in to manage your voice bots</p>
+                
+                <div id="loginError" class="error-message"></div>
+                
+                <form class="auth-form" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" id="loginEmail" class="form-input" placeholder="you@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">
+                        Sign In
+                    </button>
+                </form>
+                
+                <p class="auth-footer">
+                    Don't have an account? <a href="#" onclick="showRegister()">Create one</a>
+                </p>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerForm" class="hidden">
+                <h2 class="auth-title">Create your account</h2>
+                <p class="auth-subtitle">Start building voice bots in minutes</p>
+                
+                <div id="registerError" class="error-message"></div>
+                
+                <form class="auth-form" onsubmit="handleRegister(event)">
+                    <div class="form-group">
+                        <label class="form-label">Name</label>
+                        <input type="text" id="registerName" class="form-input" placeholder="John Doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" id="registerEmail" class="form-input" placeholder="you@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" id="registerPassword" class="form-input" placeholder="Min. 8 characters" required minlength="8">
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">
+                        Create Account
+                    </button>
+                </form>
+                
+                <p class="auth-footer">
+                    Already have an account? <a href="#" onclick="showLogin()">Sign in</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard View -->
+    <div id="dashboardView" class="app-container hidden">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">🎙️</div>
+                    <span>VoiceBot Studio</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Main</div>
+                    <div class="nav-item active" onclick="showPage('dashboard')" data-page="dashboard">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7" rx="1"/>
+                            <rect x="14" y="3" width="7" height="7" rx="1"/>
+                            <rect x="3" y="14" width="7" height="7" rx="1"/>
+                            <rect x="14" y="14" width="7" height="7" rx="1"/>
+                        </svg>
+                        Dashboard
+                    </div>
+                    <div class="nav-item" onclick="showPage('bots')" data-page="bots">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M12 1v4m0 14v4M4.22 4.22l2.83 2.83m9.9 9.9l2.83 2.83M1 12h4m14 0h4M4.22 19.78l2.83-2.83m9.9-9.9l2.83-2.83"/>
+                        </svg>
+                        My Bots
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Quick Actions</div>
+                    <div class="nav-item" onclick="openCreateBotModal()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="16"/>
+                            <line x1="8" y1="12" x2="16" y2="12"/>
+                        </svg>
+                        Create New Bot
+                    </div>
+                    <div class="nav-item" onclick="window.open('/', '_blank')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                        </svg>
+                        Test Voice Chat
+                    </div>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-card" onclick="toggleUserMenu()">
+                    <div class="user-avatar" id="userAvatar">?</div>
+                    <div class="user-info">
+                        <div class="user-name" id="userName">Loading...</div>
+                        <div class="user-email" id="userEmail">...</div>
+                    </div>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Page -->
+            <div id="dashboardPage" class="page">
+                <div class="page-header">
+                    <h1 class="page-title">Dashboard</h1>
+                    <p class="page-subtitle">Welcome back! Here's an overview of your voice bots.</p>
+                </div>
+
+                <div class="grid grid-4" style="margin-bottom: 32px;">
+                    <div class="card">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">Total Bots</div>
+                                <div style="font-size: 2rem; font-weight: 700;" id="statTotalBots">0</div>
+                            </div>
+                            <div style="width: 48px; height: 48px; background: rgba(99, 102, 241, 0.1); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2">
+                                    <circle cx="12" cy="12" r="3"/>
+                                    <path d="M12 1v4m0 14v4M4.22 4.22l2.83 2.83m9.9 9.9l2.83 2.83M1 12h4m14 0h4M4.22 19.78l2.83-2.83m9.9-9.9l2.83-2.83"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">Active Bots</div>
+                                <div style="font-size: 2rem; font-weight: 700;" id="statActiveBots">0</div>
+                            </div>
+                            <div style="width: 48px; height: 48px; background: rgba(16, 185, 129, 0.1); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                    <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">With Flows</div>
+                                <div style="font-size: 2rem; font-weight: 700;" id="statWithFlows">0</div>
+                            </div>
+                            <div style="width: 48px; height: 48px; background: rgba(245, 158, 11, 0.1); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2">
+                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">With Knowledge</div>
+                                <div style="font-size: 2rem; font-weight: 700;" id="statWithKB">0</div>
+                            </div>
+                            <div style="width: 48px; height: 48px; background: rgba(139, 92, 246, 0.1); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-secondary)" stroke-width="2">
+                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-header">
+                    <h3 class="card-title">Recent Bots</h3>
+                    <button class="btn btn-primary btn-sm" onclick="openCreateBotModal()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        New Bot
+                    </button>
+                </div>
+                <div id="recentBotsGrid" class="grid grid-3">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bots Page -->
+            <div id="botsPage" class="page hidden">
+                <div class="page-header">
+                    <h1 class="page-title">My Bots</h1>
+                    <p class="page-subtitle">Manage and customize your voice assistants</p>
+                </div>
+
+                <div id="botsGrid" class="grid grid-3">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bot Editor Page -->
+            <div id="botEditorPage" class="page hidden">
+                <div class="page-header" style="display: flex; align-items: center; gap: 16px;">
+                    <button class="btn btn-ghost" onclick="showPage('bots')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m15 18-6-6 6-6"/>
+                        </svg>
+                    </button>
+                    <div>
+                        <h1 class="page-title" id="editorBotName">Bot Name</h1>
+                        <p class="page-subtitle">Configure your bot's behavior and appearance</p>
+                    </div>
+                </div>
+
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('identity')">Identity</button>
+                    <button class="tab" onclick="switchTab('voice')">Voice</button>
+                    <button class="tab" onclick="switchTab('knowledge')">Knowledge</button>
+                    <button class="tab" onclick="switchTab('flow')">Flow Builder</button>
+                </div>
+
+                <!-- Identity Tab -->
+                <div id="identityTab" class="tab-content active">
+                    <div class="card">
+                        <div class="form-group">
+                            <label class="form-label">Bot Name</label>
+                            <input type="text" id="editBotName" class="form-input" placeholder="My Assistant">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Greeting Message</label>
+                            <input type="text" id="editBotGreeting" class="form-input" placeholder="Hello! How can I help you today?">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Bot Persona & Instructions</label>
+                            <textarea id="editBotPersona" class="form-textarea" placeholder="You are a helpful, friendly assistant. Be concise and professional..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Language</label>
+                            <select id="editBotLanguage" class="form-select">
+                                <option value="en">English</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                                <option value="it">Italian</option>
+                                <option value="pt">Portuguese</option>
+                                <option value="ja">Japanese</option>
+                                <option value="ko">Korean</option>
+                                <option value="zh">Chinese</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 12px;">
+                            <button class="btn btn-primary" onclick="saveBot()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                    <polyline points="17 21 17 13 7 13 7 21"/>
+                                    <polyline points="7 3 7 8 15 8"/>
+                                </svg>
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Voice Tab -->
+                <div id="voiceTab" class="tab-content">
+                    <div class="card">
+                        <h3 class="card-title" style="margin-bottom: 20px;">Select Voice</h3>
+                        <div class="voice-grid" id="voiceGrid">
+                            <div class="voice-option selected" data-voice="coral">
+                                <div class="voice-name">Coral</div>
+                                <div class="voice-desc">Warm & natural</div>
+                            </div>
+                            <div class="voice-option" data-voice="ash">
+                                <div class="voice-name">Ash</div>
+                                <div class="voice-desc">Calm & clear</div>
+                            </div>
+                            <div class="voice-option" data-voice="ballad">
+                                <div class="voice-name">Ballad</div>
+                                <div class="voice-desc">Soft & gentle</div>
+                            </div>
+                            <div class="voice-option" data-voice="sage">
+                                <div class="voice-name">Sage</div>
+                                <div class="voice-desc">Wise & steady</div>
+                            </div>
+                            <div class="voice-option" data-voice="verse">
+                                <div class="voice-name">Verse</div>
+                                <div class="voice-desc">Expressive</div>
+                            </div>
+                            <div class="voice-option" data-voice="alloy">
+                                <div class="voice-name">Alloy</div>
+                                <div class="voice-desc">Versatile</div>
+                            </div>
+                            <div class="voice-option" data-voice="shimmer">
+                                <div class="voice-name">Shimmer</div>
+                                <div class="voice-desc">Bright & clear</div>
+                            </div>
+                        </div>
+
+                        <h3 class="card-title" style="margin: 32px 0 20px;">Voice Speed</h3>
+                        <div class="grid grid-3">
+                            <div class="voice-option" data-speed="low">
+                                <div class="voice-name">⚡ Fast</div>
+                                <div class="voice-desc">~200ms latency</div>
+                            </div>
+                            <div class="voice-option selected" data-speed="balanced">
+                                <div class="voice-name">⚖️ Balanced</div>
+                                <div class="voice-desc">~400ms latency</div>
+                            </div>
+                            <div class="voice-option" data-speed="quality">
+                                <div class="voice-name">🎯 Quality</div>
+                                <div class="voice-desc">~600ms latency</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 24px;">
+                            <button class="btn btn-primary" onclick="saveBot()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                    <polyline points="17 21 17 13 7 13 7 21"/>
+                                    <polyline points="7 3 7 8 15 8"/>
+                                </svg>
+                                Save Voice Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Knowledge Tab -->
+                <div id="knowledgeTab" class="tab-content">
+                    <div class="card">
+                        <h3 class="card-title" style="margin-bottom: 20px;">Knowledge Base</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: 24px;">
+                            Upload documents to give your bot specific knowledge about your business, products, or services.
+                        </p>
+                        
+                        <div style="border: 2px dashed var(--border-color); border-radius: var(--radius-lg); padding: 48px; text-align: center; margin-bottom: 24px;">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" style="margin-bottom: 16px;">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            <p style="font-weight: 600; margin-bottom: 8px;">Drag and drop files here</p>
+                            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">or click to browse</p>
+                            <button class="btn btn-secondary">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="17 8 12 3 7 8"/>
+                                    <line x1="12" y1="3" x2="12" y2="15"/>
+                                </svg>
+                                Upload Files
+                            </button>
+                        </div>
+                        
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">
+                            Supported formats: PDF, DOCX, TXT, MD (Max 10MB per file)
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Flow Tab -->
+                <div id="flowTab" class="tab-content">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Conversation Flow Builder</h3>
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="flowEnabled" onchange="toggleFlow()" style="width: 18px; height: 18px; cursor: pointer;">
+                                <span style="font-size: 0.9rem; color: var(--text-secondary);">Enable Flow</span>
+                            </label>
+                        </div>
+                        
+                        <p style="color: var(--text-secondary); margin-bottom: 24px;">
+                            Design structured conversation paths for your bot. Great for appointments, support tickets, or guided experiences.
+                        </p>
+
+                        <div class="flow-toolbar">
+                            <button class="btn btn-secondary" onclick="addFlowNode('start')">
+                                <span style="color: var(--success);">●</span> Start
+                            </button>
+                            <button class="btn btn-secondary" onclick="addFlowNode('message')">
+                                <span style="color: var(--accent-primary);">●</span> Message
+                            </button>
+                            <button class="btn btn-secondary" onclick="addFlowNode('question')">
+                                <span style="color: var(--warning);">●</span> Question
+                            </button>
+                            <button class="btn btn-secondary" onclick="addFlowNode('action')">
+                                <span style="color: var(--accent-secondary);">●</span> Action
+                            </button>
+                            <button class="btn btn-secondary" onclick="addFlowNode('end')">
+                                <span style="color: var(--error);">●</span> End
+                            </button>
+                        </div>
+
+                        <div class="flow-canvas" id="flowCanvas">
+                            <svg class="flow-connections" id="flowConnections"></svg>
+                            <div class="flow-placeholder" id="flowPlaceholder">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                </svg>
+                                <p>Click "Start" to begin building your flow</p>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 24px;">
+                            <button class="btn btn-primary" onclick="saveBot()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                    <polyline points="17 21 17 13 7 13 7 21"/>
+                                    <polyline points="7 3 7 8 15 8"/>
+                                </svg>
+                                Save Flow
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create Bot Modal -->
+    <div class="modal-overlay" id="createBotModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Create New Bot</h3>
+                <button class="modal-close" onclick="closeCreateBotModal()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Bot Name</label>
+                    <input type="text" id="newBotName" class="form-input" placeholder="My Assistant">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Greeting Message</label>
+                    <input type="text" id="newBotGreeting" class="form-input" placeholder="Hello! How can I help you today?">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Bot Persona</label>
+                    <textarea id="newBotPersona" class="form-textarea" placeholder="Describe your bot's personality and behavior..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Voice</label>
+                    <select id="newBotVoice" class="form-select">
+                        <option value="coral">Coral - Warm & natural</option>
+                        <option value="ash">Ash - Calm & clear</option>
+                        <option value="ballad">Ballad - Soft & gentle</option>
+                        <option value="sage">Sage - Wise & steady</option>
+                        <option value="verse">Verse - Expressive</option>
+                        <option value="alloy">Alloy - Versatile</option>
+                        <option value="shimmer">Shimmer - Bright & clear</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCreateBotModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="createBot()">Create Bot</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // State
+        let token = localStorage.getItem('voicebot_token');
+        let user = null;
+        let bots = [];
+        let currentBot = null;
+        let flowNodes = [];
+        let flowEdges = [];
+        let selectedNode = null;
+        let nodeIdCounter = 0;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            if (token) {
+                checkAuth();
+            }
+        });
+
+        // Auth functions
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/v1/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    user = await res.json();
+                    showDashboard();
+                } else {
+                    logout();
+                }
+            } catch (e) {
+                logout();
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+        }
+
+        function showRegister() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.remove('hidden');
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorEl = document.getElementById('loginError');
+            
+            try {
+                const res = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    token = data.access_token;
+                    user = data.user;
+                    localStorage.setItem('voicebot_token', token);
+                    showDashboard();
+                } else {
+                    errorEl.textContent = data.detail || 'Login failed';
+                    errorEl.classList.add('show');
+                }
+            } catch (e) {
+                errorEl.textContent = 'Connection error. Please try again.';
+                errorEl.classList.add('show');
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const errorEl = document.getElementById('registerError');
+            
+            try {
+                const res = await fetch('/api/v1/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    token = data.access_token;
+                    user = data.user;
+                    localStorage.setItem('voicebot_token', token);
+                    showDashboard();
+                } else {
+                    errorEl.textContent = data.detail || 'Registration failed';
+                    errorEl.classList.add('show');
+                }
+            } catch (e) {
+                errorEl.textContent = 'Connection error. Please try again.';
+                errorEl.classList.add('show');
+            }
+        }
+
+        function logout() {
+            token = null;
+            user = null;
+            localStorage.removeItem('voicebot_token');
+            document.getElementById('authView').classList.remove('hidden');
+            document.getElementById('dashboardView').classList.add('hidden');
+        }
+
+        function showDashboard() {
+            document.getElementById('authView').classList.add('hidden');
+            document.getElementById('dashboardView').classList.remove('hidden');
+            
+            // Update user info
+            document.getElementById('userName').textContent = user.name;
+            document.getElementById('userEmail').textContent = user.email;
+            document.getElementById('userAvatar').textContent = user.name.charAt(0).toUpperCase();
+            
+            loadBots();
+        }
+
+        // Navigation
+        function showPage(page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            
+            document.getElementById(`${page}Page`).classList.remove('hidden');
+            document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
+            
+            if (page === 'bots') {
+                loadBots();
+            }
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`${tab}Tab`).classList.add('active');
+        }
+
+        // Bot management
+        async function loadBots() {
+            try {
+                const res = await fetch('/api/v1/auth/bots', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    bots = await res.json();
+                    renderBots();
+                    updateStats();
+                }
+            } catch (e) {
+                showToast('Failed to load bots', 'error');
+            }
+        }
+
+        function renderBots() {
+            const createCard = `
+                <div class="card create-bot-card" onclick="openCreateBotModal()">
+                    <div class="create-bot-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                    </div>
+                    <div class="create-bot-text">Create New Bot</div>
+                </div>
+            `;
+            
+            const botCards = bots.map(bot => `
+                <div class="card bot-card">
+                    <div class="bot-card-header">
+                        <div class="bot-icon">🤖</div>
+                        <div class="bot-info">
+                            <div class="bot-name">${escapeHtml(bot.name)}</div>
+                            <div class="bot-status">
+                                <span class="status-dot ${bot.is_active ? '' : 'inactive'}"></span>
+                                ${bot.is_active ? 'Active' : 'Inactive'}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bot-meta">
+                        <div class="bot-meta-item">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                            </svg>
+                            ${bot.voice_id}
+                        </div>
+                        <div class="bot-meta-item">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                            </svg>
+                            ${bot.flow_enabled ? 'Flow enabled' : 'No flow'}
+                        </div>
+                    </div>
+                    <div class="bot-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="editBot('${bot.bot_id}')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                            Edit
+                        </button>
+                        <button class="btn btn-ghost btn-sm" onclick="deleteBot('${bot.bot_id}')" style="color: var(--error);">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('botsGrid').innerHTML = createCard + botCards;
+            document.getElementById('recentBotsGrid').innerHTML = bots.length 
+                ? botCards 
+                : createCard;
+        }
+
+        function updateStats() {
+            document.getElementById('statTotalBots').textContent = bots.length;
+            document.getElementById('statActiveBots').textContent = bots.filter(b => b.is_active).length;
+            document.getElementById('statWithFlows').textContent = bots.filter(b => b.flow_enabled).length;
+            document.getElementById('statWithKB').textContent = bots.filter(b => b.knowledge_base_enabled).length;
+        }
+
+        function openCreateBotModal() {
+            document.getElementById('createBotModal').classList.add('show');
+            document.getElementById('newBotName').value = '';
+            document.getElementById('newBotGreeting').value = 'Hello! How can I help you today?';
+            document.getElementById('newBotPersona').value = 'You are a helpful, friendly assistant. Be concise and professional.';
+            document.getElementById('newBotVoice').value = 'coral';
+        }
+
+        function closeCreateBotModal() {
+            document.getElementById('createBotModal').classList.remove('show');
+        }
+
+        async function createBot() {
+            const name = document.getElementById('newBotName').value || 'My Assistant';
+            const greeting = document.getElementById('newBotGreeting').value;
+            const bot_persona = document.getElementById('newBotPersona').value;
+            const voice_id = document.getElementById('newBotVoice').value;
+            
+            try {
+                const res = await fetch('/api/v1/auth/bots', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, greeting, bot_persona, voice_id })
+                });
+                
+                if (res.ok) {
+                    const bot = await res.json();
+                    closeCreateBotModal();
+                    showToast('Bot created successfully!', 'success');
+                    loadBots();
+                    editBot(bot.bot_id);
+                } else {
+                    showToast('Failed to create bot', 'error');
+                }
+            } catch (e) {
+                showToast('Connection error', 'error');
+            }
+        }
+
+        async function editBot(botId) {
+            try {
+                const res = await fetch(`/api/v1/auth/bots/${botId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    currentBot = await res.json();
+                    
+                    // Update editor fields
+                    document.getElementById('editorBotName').textContent = currentBot.name;
+                    document.getElementById('editBotName').value = currentBot.name;
+                    document.getElementById('editBotGreeting').value = currentBot.greeting;
+                    document.getElementById('editBotPersona').value = currentBot.bot_persona;
+                    document.getElementById('editBotLanguage').value = currentBot.language || 'en';
+                    
+                    // Update voice selection
+                    document.querySelectorAll('.voice-option[data-voice]').forEach(el => {
+                        el.classList.toggle('selected', el.dataset.voice === currentBot.voice_id);
+                    });
+                    
+                    // Update speed selection
+                    document.querySelectorAll('.voice-option[data-speed]').forEach(el => {
+                        el.classList.toggle('selected', el.dataset.speed === currentBot.voice_speed);
+                    });
+                    
+                    // Update flow
+                    document.getElementById('flowEnabled').checked = currentBot.flow_enabled;
+                    if (currentBot.flow_config) {
+                        flowNodes = currentBot.flow_config.nodes || [];
+                        flowEdges = currentBot.flow_config.edges || [];
+                        renderFlowNodes();
+                    } else {
+                        flowNodes = [];
+                        flowEdges = [];
+                        renderFlowNodes();
+                    }
+                    
+                    showPage('botEditor');
+                    
+                    // Reset to first tab
+                    document.querySelectorAll('.tab').forEach((t, i) => {
+                        t.classList.toggle('active', i === 0);
+                    });
+                    document.querySelectorAll('.tab-content').forEach((c, i) => {
+                        c.classList.toggle('active', i === 0);
+                    });
+                }
+            } catch (e) {
+                showToast('Failed to load bot', 'error');
+            }
+        }
+
+        async function saveBot() {
+            if (!currentBot) return;
+            
+            // Get selected voice
+            const selectedVoice = document.querySelector('.voice-option[data-voice].selected');
+            const selectedSpeed = document.querySelector('.voice-option[data-speed].selected');
+            
+            const updates = {
+                name: document.getElementById('editBotName').value,
+                greeting: document.getElementById('editBotGreeting').value,
+                bot_persona: document.getElementById('editBotPersona').value,
+                language: document.getElementById('editBotLanguage').value,
+                voice_id: selectedVoice?.dataset.voice || 'coral',
+                voice_speed: selectedSpeed?.dataset.speed || 'balanced',
+                flow_enabled: document.getElementById('flowEnabled').checked,
+                flow_config: {
+                    nodes: flowNodes,
+                    edges: flowEdges
+                }
+            };
+            
+            try {
+                const res = await fetch(`/api/v1/auth/bots/${currentBot.bot_id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updates)
+                });
+                
+                if (res.ok) {
+                    currentBot = await res.json();
+                    document.getElementById('editorBotName').textContent = currentBot.name;
+                    showToast('Bot saved successfully!', 'success');
+                } else {
+                    showToast('Failed to save bot', 'error');
+                }
+            } catch (e) {
+                showToast('Connection error', 'error');
+            }
+        }
+
+        async function deleteBot(botId) {
+            if (!confirm('Are you sure you want to delete this bot?')) return;
+            
+            try {
+                const res = await fetch(`/api/v1/auth/bots/${botId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    showToast('Bot deleted', 'success');
+                    loadBots();
+                } else {
+                    showToast('Failed to delete bot', 'error');
+                }
+            } catch (e) {
+                showToast('Connection error', 'error');
+            }
+        }
+
+        // Voice selection
+        document.addEventListener('click', (e) => {
+            const voiceOption = e.target.closest('.voice-option[data-voice]');
+            if (voiceOption) {
+                document.querySelectorAll('.voice-option[data-voice]').forEach(el => el.classList.remove('selected'));
+                voiceOption.classList.add('selected');
+            }
+            
+            const speedOption = e.target.closest('.voice-option[data-speed]');
+            if (speedOption) {
+                document.querySelectorAll('.voice-option[data-speed]').forEach(el => el.classList.remove('selected'));
+                speedOption.classList.add('selected');
+            }
+        });
+
+        // Flow builder
+        function toggleFlow() {
+            const enabled = document.getElementById('flowEnabled').checked;
+            if (enabled && flowNodes.length === 0) {
+                addFlowNode('start');
+            }
+        }
+
+        function addFlowNode(type) {
+            const canvas = document.getElementById('flowCanvas');
+            const placeholder = document.getElementById('flowPlaceholder');
+            
+            placeholder.style.display = 'none';
+            
+            const nodeId = `node_${++nodeIdCounter}`;
+            const labels = {
+                start: 'Start',
+                message: 'Message',
+                question: 'Question',
+                action: 'Action',
+                end: 'End'
+            };
+            
+            const node = {
+                id: nodeId,
+                type,
+                label: labels[type],
+                content: type === 'start' ? 'Conversation begins' : 
+                         type === 'message' ? 'Bot says something...' :
+                         type === 'question' ? 'Ask the user...' :
+                         type === 'action' ? 'Perform action...' :
+                         'Conversation ends',
+                position: {
+                    x: 50 + (flowNodes.length % 3) * 220,
+                    y: 50 + Math.floor(flowNodes.length / 3) * 150
+                }
+            };
+            
+            flowNodes.push(node);
+            renderFlowNodes();
+        }
+
+        function renderFlowNodes() {
+            const canvas = document.getElementById('flowCanvas');
+            const placeholder = document.getElementById('flowPlaceholder');
+            
+            // Clear existing nodes (keep SVG and placeholder)
+            canvas.querySelectorAll('.flow-node').forEach(n => n.remove());
+            
+            if (flowNodes.length === 0) {
+                placeholder.style.display = 'block';
+                return;
+            }
+            
+            placeholder.style.display = 'none';
+            
+            flowNodes.forEach(node => {
+                const el = document.createElement('div');
+                el.className = `flow-node node-type-${node.type}`;
+                el.id = node.id;
+                el.style.left = node.position.x + 'px';
+                el.style.top = node.position.y + 'px';
+                el.innerHTML = `
+                    <div class="flow-node-header">
+                        <span>●</span> ${node.label}
+                    </div>
+                    <div class="flow-node-body">${escapeHtml(node.content)}</div>
+                `;
+                
+                // Make draggable
+                el.onmousedown = (e) => startDrag(e, node);
+                
+                canvas.appendChild(el);
+            });
+        }
+
+        let dragNode = null;
+        let dragOffset = { x: 0, y: 0 };
+
+        function startDrag(e, node) {
+            dragNode = node;
+            const el = document.getElementById(node.id);
+            dragOffset = {
+                x: e.clientX - el.offsetLeft,
+                y: e.clientY - el.offsetTop
+            };
+            
+            document.addEventListener('mousemove', onDrag);
+            document.addEventListener('mouseup', stopDrag);
+        }
+
+        function onDrag(e) {
+            if (!dragNode) return;
+            
+            const canvas = document.getElementById('flowCanvas');
+            const rect = canvas.getBoundingClientRect();
+            
+            const x = e.clientX - rect.left - dragOffset.x + canvas.scrollLeft;
+            const y = e.clientY - rect.top - dragOffset.y + canvas.scrollTop;
+            
+            dragNode.position = { x: Math.max(0, x), y: Math.max(0, y) };
+            
+            const el = document.getElementById(dragNode.id);
+            el.style.left = dragNode.position.x + 'px';
+            el.style.top = dragNode.position.y + 'px';
+        }
+
+        function stopDrag() {
+            dragNode = null;
+            document.removeEventListener('mousemove', onDrag);
+            document.removeEventListener('mouseup', stopDrag);
+        }
+
+        // Utils
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    ${type === 'success' 
+                        ? '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'
+                        : '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'}
+                </svg>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function toggleUserMenu() {
+            if (confirm('Sign out?')) {
+                logout();
+            }
+        }
+    </script>
+</body>
+</html>
+

@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..config import get_settings
-from .routers import customers, documents, sessions, voice_ws
+from .routers import auth, customers, documents, sessions, voice_ws
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,6 +47,7 @@ def create_app() -> FastAPI:
     )
 
     # Include routers
+    app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
     app.include_router(customers.router, prefix="/api/v1/customers", tags=["customers"])
     app.include_router(documents.router, prefix="/api/v1/documents", tags=["documents"])
     app.include_router(sessions.router, prefix="/api/v1/sessions", tags=["sessions"])
@@ -67,6 +68,12 @@ def create_app() -> FastAPI:
         """Serve the main chat interface."""
         static_dir = Path(__file__).parent.parent / "static"
         return FileResponse(str(static_dir / "cheap.html"))
+
+    @app.get("/dashboard")
+    async def dashboard():
+        """Serve the dashboard interface."""
+        static_dir = Path(__file__).parent.parent / "static"
+        return FileResponse(str(static_dir / "dashboard.html"))
 
     return app
 

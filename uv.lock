@@ -582,6 +582,15 @@ wheels = [
 ]
 
 [[package]]
+name = "dnspython"
+version = "2.8.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/8c/8b/57666417c0f90f08bcafa776861060426765fdb422eb10212086fb811d26/dnspython-2.8.0.tar.gz", hash = "sha256:181d3c6996452cb1189c4046c61599b84a5a86e099562ffde77d26984ff26d0f", size = 368251, upload-time = "2025-09-07T18:58:00.022Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ba/5a/18ad964b0086c6e62e2e7500f7edc89e3faa45033c71c1893d34eed2b2de/dnspython-2.8.0-py3-none-any.whl", hash = "sha256:01d9bbc4a2d76bf0db7c1f729812ded6d912bd318d3b1cf81d30c0f845dbf3af", size = 331094, upload-time = "2025-09-07T18:57:58.071Z" },
+]
+
+[[package]]
 name = "docstring-parser"
 version = "0.17.0"
 source = { registry = "https://pypi.org/simple" }
@@ -605,6 +614,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/39/a3/4a55399f47b081d691dc9b73c57d7a8d64d3e7754a41727ae5be83cafa77/elevenlabs-2.25.0.tar.gz", hash = "sha256:1846542a3e0db81d846a8a28a1c59a79c85477e394f0313dfcdf91ac57d4ee26", size = 424427, upload-time = "2025-12-01T19:31:58.329Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6e/32/f3774b1d38818797387cf08b8bd2e04757726bf38a2a71a3e1c2b010d3c1/elevenlabs-2.25.0-py3-none-any.whl", hash = "sha256:966a290eddbb741e4dc0a70d2f8d2a195e6efd282e4d714bb3e7d3f941ed45c2", size = 1134424, upload-time = "2025-12-01T19:31:56.816Z" },
+]
+
+[[package]]
+name = "email-validator"
+version = "2.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "dnspython" },
+    { name = "idna" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f5/22/900cb125c76b7aaa450ce02fd727f452243f2e91a61af068b40adba60ea9/email_validator-2.3.0.tar.gz", hash = "sha256:9fc05c37f2f6cf439ff414f8fc46d917929974a82244c20eb10231ba60c54426", size = 51238, upload-time = "2025-08-26T13:09:06.831Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/de/15/545e2b6cf2e3be84bc1ed85613edd75b8aea69807a71c26f4ca6a9258e82/email_validator-2.3.0-py3-none-any.whl", hash = "sha256:80f13f623413e6b197ae73bb10bf4eb0908faf509ad8362c5edeb0be7fd450b4", size = 35604, upload-time = "2025-08-26T13:09:05.858Z" },
 ]
 
 [[package]]
@@ -3147,6 +3169,7 @@ dependencies = [
     { name = "cartesia" },
     { name = "deepgram-sdk" },
     { name = "elevenlabs" },
+    { name = "email-validator" },
     { name = "faiss-cpu" },
     { name = "fastapi" },
     { name = "groq" },
@@ -3179,6 +3202,7 @@ requires-dist = [
     { name = "cartesia", specifier = ">=1.0.0" },
     { name = "deepgram-sdk", specifier = ">=3.0.0" },
     { name = "elevenlabs", specifier = ">=1.0.0" },
+    { name = "email-validator", specifier = ">=2.0.0" },
     { name = "faiss-cpu", specifier = ">=1.8.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "groq", specifier = ">=0.11.0" },
