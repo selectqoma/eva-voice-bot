@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eva - Voice Assistant</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a472a 0%, #0f2818 50%, #0a1f12 100%);
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container { max-width: 500px; width: 100%; text-align: center; }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle { color: #888; margin-bottom: 0.5rem; font-size: 1.1rem; }
+        
+        .tech-badge {
+            display: inline-block;
+            background: rgba(74, 222, 128, 0.2);
+            border: 1px solid rgba(74, 222, 128, 0.4);
+            color: #4ade80;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-bottom: 2rem;
+        }
+
+        .status-container {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 1.1rem;
+            color: #aaa;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #444;
+            transition: all 0.3s ease;
+        }
+
+        .status-dot.connecting { background: #f0ad4e; animation: pulse 1.5s infinite; }
+        .status-dot.listening { background: #4ade80; box-shadow: 0 0 20px rgba(74, 222, 128, 0.5); }
+        .status-dot.thinking { background: #fbbf24; animation: pulse 0.5s infinite; }
+        .status-dot.speaking { background: #22c55e; animation: pulse 0.5s infinite; box-shadow: 0 0 20px rgba(34, 197, 94, 0.5); }
+        .status-dot.error { background: #ef4444; }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+
+        .visualizer {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            margin: 1.5rem 0;
+        }
+
+        .bar {
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(180deg, #4ade80 0%, #22c55e 100%);
+            border-radius: 2px;
+            transition: height 0.1s ease;
+        }
+
+        .visualizer.active .bar { animation: sound 0.5s infinite ease-in-out; }
+        .visualizer.active .bar:nth-child(1) { animation-delay: 0.0s; }
+        .visualizer.active .bar:nth-child(2) { animation-delay: 0.1s; }
+        .visualizer.active .bar:nth-child(3) { animation-delay: 0.2s; }
+        .visualizer.active .bar:nth-child(4) { animation-delay: 0.3s; }
+        .visualizer.active .bar:nth-child(5) { animation-delay: 0.4s; }
+        .visualizer.active .bar:nth-child(6) { animation-delay: 0.3s; }
+        .visualizer.active .bar:nth-child(7) { animation-delay: 0.2s; }
+        .visualizer.active .bar:nth-child(8) { animation-delay: 0.1s; }
+
+        @keyframes sound {
+            0%, 100% { height: 20px; }
+            50% { height: 50px; }
+        }
+
+        .chat-button {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            border: none;
+            color: #0a1f12;
+            padding: 1.2rem 3rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            font-family: 'Space Grotesk', sans-serif;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 40px rgba(74, 222, 128, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 50px rgba(74, 222, 128, 0.4);
+        }
+
+        .chat-button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .chat-button.stop {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            box-shadow: 0 10px 40px rgba(239, 68, 68, 0.3);
+        }
+
+        .chat-button svg { width: 24px; height: 24px; }
+
+        .transcript {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .transcript:empty { display: none; }
+        .transcript .user { color: #4ade80; margin-bottom: 0.5rem; }
+        .transcript .assistant { color: #fbbf24; margin-bottom: 1rem; }
+        .transcript .label { font-weight: 600; opacity: 0.7; }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .error-message:empty { display: none; }
+
+        .mode-switch {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+        }
+
+        .mode-switch a {
+            color: #4ade80;
+            text-decoration: none;
+        }
+
+        .mode-switch a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ Eva</h1>
+        <p class="subtitle">Your Voice Assistant</p>
+        <span class="tech-badge">Powered by ElevenLabs</span>
+
+        <div class="status-container">
+            <div class="status">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Ready to chat</span>
+            </div>
+
+            <div class="visualizer" id="visualizer">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label for="voiceSelect" style="display: block; margin-bottom: 0.5rem; color: #888; font-size: 0.9rem;">Voice</label>
+                <select id="voiceSelect" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #e0e0e0; padding: 0.8rem 1.2rem; border-radius: 8px; font-family: 'Space Grotesk', sans-serif; font-size: 1rem; cursor: pointer;">
+                    <option value="rachel" selected>👩 Rachel (Warm)</option>
+                    <option value="bella">👩 Bella (Soft)</option>
+                    <option value="elli">👧 Elli (Young)</option>
+                    <option value="adam">👨 Adam (Deep)</option>
+                    <option value="josh">👦 Josh (Casual)</option>
+                </select>
+            </div>
+
+            <button class="chat-button" id="chatButton" onclick="toggleChat()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+                Start Chat
+            </button>
+        </div>
+
+        <div class="transcript" id="transcript"></div>
+        <div class="error-message" id="errorMessage"></div>
+
+    </div>
+
+    <script>
+        let websocket = null;
+        let audioContext = null;
+        let mediaStream = null;
+        let mediaRecorder = null;
+        let isConnected = false;
+
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const chatButton = document.getElementById('chatButton');
+        const visualizer = document.getElementById('visualizer');
+        const transcript = document.getElementById('transcript');
+        const errorMessage = document.getElementById('errorMessage');
+
+        function setStatus(status, text) {
+            statusDot.className = 'status-dot ' + status;
+            statusText.textContent = text;
+            visualizer.classList.toggle('active', status === 'speaking');
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+        }
+
+        function clearError() {
+            errorMessage.textContent = '';
+        }
+
+        function addTranscript(role, text) {
+            const div = document.createElement('div');
+            div.className = role;
+            div.innerHTML = `<span class="label">${role === 'user' ? 'You' : 'Assistant'}:</span> ${text}`;
+            transcript.appendChild(div);
+            transcript.scrollTop = transcript.scrollHeight;
+        }
+
+        async function toggleChat() {
+            if (isConnected) {
+                stopChat();
+            } else {
+                await startChat();
+            }
+        }
+
+        async function startChat() {
+            clearError();
+            chatButton.disabled = true;
+            setStatus('connecting', 'Connecting...');
+
+            try {
+                // Check if mediaDevices is available
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('Your browser does not support microphone access. Please use Chrome or Firefox, and make sure you are on localhost or HTTPS.');
+                }
+
+                // Request microphone FIRST (before AudioContext to avoid issues)
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                    }
+                });
+
+                // Set up audio context for playback AFTER getting mic permission
+                audioContext = new AudioContext({ sampleRate: 24000 });
+                
+                // Resume audio context if suspended (browser autoplay policy)
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+
+                // Connect to WebSocket with selected voice
+                const voice = document.getElementById('voiceSelect').value;
+                const wsUrl = `ws://${window.location.host}/api/v1/voice/stream?voice=${voice}`;
+                websocket = new WebSocket(wsUrl);
+
+                websocket.onopen = () => {
+                    console.log('WebSocket connected');
+                    isConnected = true;
+                    setStatus('listening', 'Listening...');
+                    startRecording();
+                    updateButton(true);
+                };
+
+                websocket.onmessage = async (event) => {
+                    const data = JSON.parse(event.data);
+                    handleServerMessage(data);
+                };
+
+                websocket.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    showError('Connection error');
+                    setStatus('error', 'Connection failed');
+                };
+
+                websocket.onclose = () => {
+                    console.log('WebSocket closed');
+                    stopChat();
+                };
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message);
+                setStatus('error', 'Failed');
+                chatButton.disabled = false;
+            }
+        }
+
+        function startRecording() {
+            // Use ScriptProcessor for raw PCM (MediaRecorder doesn't give us raw PCM easily)
+            const source = audioContext.createMediaStreamSource(mediaStream);
+            const processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+            processor.onaudioprocess = (e) => {
+                if (!isConnected || !websocket || websocket.readyState !== WebSocket.OPEN) return;
+
+                const inputData = e.inputBuffer.getChannelData(0);
+                
+                // Downsample from audioContext.sampleRate to 16000
+                const targetSampleRate = 16000;
+                const ratio = audioContext.sampleRate / targetSampleRate;
+                const newLength = Math.round(inputData.length / ratio);
+                const result = new Int16Array(newLength);
+
+                for (let i = 0; i < newLength; i++) {
+                    const index = Math.round(i * ratio);
+                    // Convert float32 to int16
+                    const s = Math.max(-1, Math.min(1, inputData[index]));
+                    result[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                }
+
+                // Send as binary
+                websocket.send(result.buffer);
+            };
+
+            source.connect(processor);
+            processor.connect(audioContext.destination);
+        }
+
+        async function handleServerMessage(data) {
+            switch (data.type) {
+                case 'status':
+                    if (data.status === 'listening') {
+                        setStatus('listening', 'Listening...');
+                    } else if (data.status === 'thinking') {
+                        setStatus('thinking', 'Thinking...');
+                    } else if (data.status === 'speaking') {
+                        setStatus('speaking', 'Speaking...');
+                    }
+                    break;
+
+                case 'transcript':
+                    if (data.is_final) {
+                        addTranscript('user', data.text);
+                    }
+                    break;
+
+                case 'response':
+                    addTranscript('assistant', data.text);
+                    break;
+
+                case 'audio':
+                    // Play audio immediately
+                    const audioData = base64ToArrayBuffer(data.data);
+                    playAudio(audioData);
+                    break;
+
+                case 'audio_end':
+                    // Audio stream complete
+                    break;
+
+                case 'error':
+                    showError(data.message);
+                    setStatus('error', 'Error');
+                    break;
+            }
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binaryString = atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        async function playAudio(audioData) {
+            try {
+                // Convert Int16 PCM to Float32 for Web Audio
+                const int16Array = new Int16Array(audioData);
+                const float32Array = new Float32Array(int16Array.length);
+                for (let i = 0; i < int16Array.length; i++) {
+                    float32Array[i] = int16Array[i] / 32768.0;
+                }
+
+                // Create audio buffer at 24kHz (ElevenLabs output rate)
+                const audioBuffer = audioContext.createBuffer(1, float32Array.length, 24000);
+                audioBuffer.getChannelData(0).set(float32Array);
+
+                // Play with slight gain boost for clarity
+                const source = audioContext.createBufferSource();
+                const gainNode = audioContext.createGain();
+                gainNode.gain.value = 1.2;
+                
+                source.buffer = audioBuffer;
+                source.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                source.start();
+
+            } catch (error) {
+                console.error('Audio playback error:', error);
+            }
+        }
+
+        function updateButton(connected) {
+            chatButton.disabled = false;
+            if (connected) {
+                chatButton.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="6" y="6" width="12" height="12" rx="2"/>
+                    </svg>
+                    Stop Chat
+                `;
+                chatButton.classList.add('stop');
+            } else {
+                chatButton.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                    Start Chat
+                `;
+                chatButton.classList.remove('stop');
+            }
+        }
+
+        function stopChat() {
+            isConnected = false;
+
+            if (websocket) {
+                websocket.close();
+                websocket = null;
+            }
+
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+
+            audioQueue = [];
+            isPlaying = false;
+
+            setStatus('', 'Ready to chat');
+            updateButton(false);
+        }
+    </script>
+</body>
+</html>
+

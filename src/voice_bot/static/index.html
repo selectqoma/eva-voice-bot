@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Assistant</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-bottom: 3rem;
+            font-size: 1.1rem;
+        }
+
+        .status-container {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 1.1rem;
+            color: #aaa;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #444;
+            transition: all 0.3s ease;
+        }
+
+        .status-dot.connecting {
+            background: #f0ad4e;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-dot.connected {
+            background: #5cb85c;
+            box-shadow: 0 0 20px rgba(92, 184, 92, 0.5);
+        }
+
+        .status-dot.speaking {
+            background: #667eea;
+            animation: pulse 0.5s infinite;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .status-dot.listening {
+            background: #764ba2;
+            animation: pulse 1s infinite;
+            box-shadow: 0 0 20px rgba(118, 75, 162, 0.5);
+        }
+
+        .status-dot.error {
+            background: #d9534f;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+
+        .visualizer {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            margin: 1.5rem 0;
+        }
+
+        .bar {
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+            transition: height 0.1s ease;
+        }
+
+        .visualizer.active .bar {
+            animation: sound 0.5s infinite ease-in-out;
+        }
+
+        .visualizer.active .bar:nth-child(1) { animation-delay: 0.0s; }
+        .visualizer.active .bar:nth-child(2) { animation-delay: 0.1s; }
+        .visualizer.active .bar:nth-child(3) { animation-delay: 0.2s; }
+        .visualizer.active .bar:nth-child(4) { animation-delay: 0.3s; }
+        .visualizer.active .bar:nth-child(5) { animation-delay: 0.4s; }
+        .visualizer.active .bar:nth-child(6) { animation-delay: 0.3s; }
+        .visualizer.active .bar:nth-child(7) { animation-delay: 0.2s; }
+        .visualizer.active .bar:nth-child(8) { animation-delay: 0.1s; }
+
+        @keyframes sound {
+            0%, 100% { height: 20px; }
+            50% { height: 50px; }
+        }
+
+        .chat-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 1.2rem 3rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            font-family: 'Space Grotesk', sans-serif;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 50px rgba(102, 126, 234, 0.4);
+        }
+
+        .chat-button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .chat-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .chat-button.stop {
+            background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%);
+            box-shadow: 0 10px 40px rgba(217, 83, 79, 0.3);
+        }
+
+        .chat-button svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .transcript {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .transcript:empty {
+            display: none;
+        }
+
+        .transcript .user {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .transcript .assistant {
+            color: #5cb85c;
+            margin-bottom: 1rem;
+        }
+
+        .transcript .label {
+            font-weight: 600;
+            opacity: 0.7;
+        }
+
+        .voice-select {
+            margin-bottom: 1.5rem;
+        }
+
+        .voice-select label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .voice-select select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+            padding: 0.8rem 1.2rem;
+            border-radius: 8px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 100%;
+            max-width: 200px;
+        }
+
+        .voice-select select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .error-message {
+            background: rgba(217, 83, 79, 0.1);
+            border: 1px solid rgba(217, 83, 79, 0.3);
+            color: #d9534f;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .error-message:empty {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ Voice Assistant</h1>
+        <p class="subtitle">Powered by OpenAI Realtime API</p>
+
+        <div class="status-container">
+            <div class="status">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Ready to chat</span>
+            </div>
+
+            <div class="visualizer" id="visualizer">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+
+            <div class="voice-select" style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <div>
+                    <label for="voice">Voice</label>
+                    <select id="voice">
+                        <optgroup label="New Voices">
+                            <option value="coral" selected>Coral</option>
+                            <option value="ash">Ash</option>
+                            <option value="ballad">Ballad</option>
+                            <option value="sage">Sage</option>
+                            <option value="verse">Verse</option>
+                        </optgroup>
+                        <optgroup label="Classic">
+                            <option value="alloy">Alloy</option>
+                            <option value="shimmer">Shimmer</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div>
+                    <label for="latency">Speed</label>
+                    <select id="latency">
+                        <option value="low" selected>⚡ Fast (200ms)</option>
+                        <option value="balanced">⚖️ Balanced (400ms)</option>
+                        <option value="quality">🎯 Quality (600ms)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button class="chat-button" id="chatButton" onclick="toggleChat()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+                Start Chat
+            </button>
+        </div>
+
+        <div class="transcript" id="transcript"></div>
+        <div class="error-message" id="errorMessage"></div>
+
+        <div style="margin-top: 1.5rem; font-size: 0.85rem;">
+            <a href="/cheap" style="color: #4ade80; text-decoration: none;">
+                💚 Try Budget Mode (~$0.02/min, 90% cheaper) →
+            </a>
+        </div>
+    </div>
+
+    <script>
+        let peerConnection = null;
+        let dataChannel = null;
+        let audioElement = null;
+        let isConnected = false;
+
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const chatButton = document.getElementById('chatButton');
+        const visualizer = document.getElementById('visualizer');
+        const transcript = document.getElementById('transcript');
+        const errorMessage = document.getElementById('errorMessage');
+        const voiceSelect = document.getElementById('voice');
+
+        function setStatus(status, text) {
+            statusDot.className = 'status-dot ' + status;
+            statusText.textContent = text;
+            
+            if (status === 'speaking') {
+                visualizer.classList.add('active');
+            } else {
+                visualizer.classList.remove('active');
+            }
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+        }
+
+        function clearError() {
+            errorMessage.textContent = '';
+        }
+
+        function addTranscript(role, text) {
+            const div = document.createElement('div');
+            div.className = role;
+            div.innerHTML = `<span class="label">${role === 'user' ? 'You' : 'Assistant'}:</span> ${text}`;
+            transcript.appendChild(div);
+            transcript.scrollTop = transcript.scrollHeight;
+        }
+
+        async function toggleChat() {
+            if (isConnected) {
+                stopChat();
+            } else {
+                await startChat();
+            }
+        }
+
+        async function startChat() {
+            clearError();
+            chatButton.disabled = true;
+            setStatus('connecting', 'Connecting...');
+
+            try {
+                // First, request microphone permission with audio processing
+                setStatus('connecting', 'Requesting microphone...');
+                let stream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true,
+                            sampleRate: 24000,
+                        }
+                    });
+                } catch (micError) {
+                    throw new Error('Microphone access denied. Please allow microphone access and try again.');
+                }
+
+                // Get ephemeral token from our backend
+                setStatus('connecting', 'Getting session token...');
+                const voice = voiceSelect.value;
+                const latency = document.getElementById('latency').value;
+                const response = await fetch(`/api/v1/realtime/session?voice=${voice}&latency=${latency}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Failed to get session token: ${errorText}`);
+                }
+
+                const data = await response.json();
+                const ephemeralKey = data.client_secret.value;
+                console.log('Got ephemeral key');
+
+                // Create peer connection with STUN servers
+                setStatus('connecting', 'Setting up connection...');
+                peerConnection = new RTCPeerConnection({
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' }
+                    ]
+                });
+
+                // Set up audio element for playback (muted initially to prevent artifacts)
+                audioElement = document.createElement('audio');
+                audioElement.autoplay = true;
+                audioElement.muted = true; // Start muted
+                document.body.appendChild(audioElement);
+                
+                peerConnection.ontrack = (e) => {
+                    console.log('Got remote track', e.streams);
+                    audioElement.srcObject = e.streams[0];
+                    // Unmute after a short delay to avoid initial artifacts
+                    setTimeout(() => {
+                        audioElement.muted = false;
+                        console.log('Audio unmuted');
+                    }, 300);
+                };
+
+                // Add local audio track (microphone)
+                stream.getTracks().forEach(track => {
+                    console.log('Adding track:', track.kind);
+                    peerConnection.addTrack(track, stream);
+                });
+
+                // Create data channel for events
+                dataChannel = peerConnection.createDataChannel('oai-events');
+                dataChannel.onopen = () => {
+                    console.log('Data channel open');
+                    setStatus('connected', 'Connected - Start speaking!');
+                };
+                dataChannel.onerror = (e) => {
+                    console.error('Data channel error:', e);
+                };
+                dataChannel.onmessage = handleServerEvent;
+
+                // Create and set local description
+                setStatus('connecting', 'Creating offer...');
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                console.log('Local description set');
+
+                // Connect to OpenAI Realtime API
+                setStatus('connecting', 'Connecting to OpenAI...');
+                const model = 'gpt-4o-realtime-preview-2024-12-17';
+                const sdpResponse = await fetch(`https://api.openai.com/v1/realtime?model=${model}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${ephemeralKey}`,
+                        'Content-Type': 'application/sdp'
+                    },
+                    body: offer.sdp
+                });
+
+                if (!sdpResponse.ok) {
+                    const errorText = await sdpResponse.text();
+                    throw new Error(`OpenAI connection failed: ${sdpResponse.status} - ${errorText}`);
+                }
+
+                const answerSdp = await sdpResponse.text();
+                console.log('Got SDP answer');
+                
+                const answer = {
+                    type: 'answer',
+                    sdp: answerSdp
+                };
+                await peerConnection.setRemoteDescription(answer);
+                console.log('Remote description set');
+
+                isConnected = true;
+                chatButton.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="6" y="6" width="12" height="12" rx="2"/>
+                    </svg>
+                    Stop Chat
+                `;
+                chatButton.classList.add('stop');
+                chatButton.disabled = false;
+
+            } catch (error) {
+                console.error('Error starting chat:', error);
+                showError(error.message || 'Connection failed. Check console for details.');
+                setStatus('error', 'Connection failed');
+                chatButton.disabled = false;
+                stopChat();
+            }
+        }
+
+        function stopChat() {
+            // Stop all tracks
+            if (peerConnection) {
+                peerConnection.getSenders().forEach(sender => {
+                    if (sender.track) {
+                        sender.track.stop();
+                    }
+                });
+                peerConnection.close();
+                peerConnection = null;
+            }
+            if (dataChannel) {
+                dataChannel.close();
+                dataChannel = null;
+            }
+            if (audioElement) {
+                audioElement.srcObject = null;
+                audioElement.remove();
+                audioElement = null;
+            }
+
+            isConnected = false;
+            setStatus('', 'Ready to chat');
+            chatButton.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+                Start Chat
+            `;
+            chatButton.classList.remove('stop');
+        }
+
+        function handleServerEvent(event) {
+            const data = JSON.parse(event.data);
+            console.log('Server event:', data.type, data);
+
+            switch (data.type) {
+                case 'response.audio.delta':
+                    setStatus('speaking', 'Assistant speaking...');
+                    break;
+                case 'response.audio.done':
+                    setStatus('listening', 'Listening...');
+                    break;
+                case 'input_audio_buffer.speech_started':
+                    setStatus('listening', 'You are speaking...');
+                    break;
+                case 'input_audio_buffer.speech_stopped':
+                    setStatus('connected', 'Processing...');
+                    break;
+                case 'conversation.item.input_audio_transcription.completed':
+                    if (data.transcript) {
+                        addTranscript('user', data.transcript);
+                    }
+                    break;
+                case 'response.audio_transcript.done':
+                    if (data.transcript) {
+                        addTranscript('assistant', data.transcript);
+                    }
+                    break;
+                case 'error':
+                    showError(data.error?.message || 'An error occurred');
+                    setStatus('error', 'Error');
+                    break;
+            }
+        }
+    </script>
+</body>
+</html>
+
