@@ -15,19 +15,10 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # API Keys
+    # API Keys (OpenAI/cartesia/daily removed)
     deepgram_api_key: str
-    openai_api_key: str
-    cartesia_api_key: str
-    daily_api_key: str
-    groq_api_key: str = ""  # Optional: for cheap alternative stack
-    elevenlabs_api_key: str = ""  # Optional: for premium TTS
-
-    # OpenAI Configuration
-    openai_model: str = "gpt-4o-mini"
-
-    # Cartesia Configuration
-    cartesia_voice_id: str = "a0e99841-438c-4a64-b679-ae501e7d6091"
+    groq_api_key: str = ""
+    elevenlabs_api_key: str = ""
 
     # Server Configuration
     api_host: str = "0.0.0.0"

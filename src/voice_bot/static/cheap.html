@@ -244,6 +244,8 @@
     <script>
         let websocket = null;
         let audioContext = null;
+        let currentSource = null;
+        let currentGain = null;
         let mediaStream = null;
         let mediaRecorder = null;
         let isConnected = false;
@@ -432,6 +434,11 @@
 
         async function playAudio(audioData) {
             try {
+                // Ensure audio context is running (browsers may suspend it)
+                if (audioContext && audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+
                 // Convert Int16 PCM to Float32 for Web Audio
                 const int16Array = new Int16Array(audioData);
                 const float32Array = new Float32Array(int16Array.length);
@@ -443,18 +450,39 @@
                 const audioBuffer = audioContext.createBuffer(1, float32Array.length, 24000);
                 audioBuffer.getChannelData(0).set(float32Array);
 
+                // Stop any in-flight playback to avoid overlap
+                stopPlayback();
+
                 // Play with slight gain boost for clarity
-                const source = audioContext.createBufferSource();
-                const gainNode = audioContext.createGain();
-                gainNode.gain.value = 1.2;
+                currentSource = audioContext.createBufferSource();
+                currentGain = audioContext.createGain();
+                currentGain.gain.value = 1.2;
                 
-                source.buffer = audioBuffer;
-                source.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                source.start();
+                currentSource.buffer = audioBuffer;
+                currentSource.connect(currentGain);
+                currentGain.connect(audioContext.destination);
+                currentSource.start();
+
+                currentSource.onended = () => {
+                    currentSource = null;
+                    currentGain = null;
+                };
 
             } catch (error) {
                 console.error('Audio playback error:', error);
+            }
+        }
+
+        function stopPlayback() {
+            try {
+                if (currentSource) {
+                    currentSource.stop(0);
+                }
+            } catch (e) {
+                console.warn('Playback stop error:', e);
+            } finally {
+                currentSource = null;
+                currentGain = null;
             }
         }
 
@@ -495,13 +523,12 @@
                 mediaStream = null;
             }
 
+            stopPlayback();
+
             if (audioContext) {
                 audioContext.close();
                 audioContext = null;
             }
-
-            audioQueue = [];
-            isPlaying = false;
 
             setStatus('', 'Ready to chat');
             updateButton(false);

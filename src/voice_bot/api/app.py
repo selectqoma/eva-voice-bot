@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..config import get_settings
-from .routers import auth, customers, documents, sessions, voice_ws
+from .routers import auth, customers, documents, voice_ws
 
 logging.basicConfig(
     level=logging.INFO,
@@ -50,7 +50,6 @@ def create_app() -> FastAPI:
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
     app.include_router(customers.router, prefix="/api/v1/customers", tags=["customers"])
     app.include_router(documents.router, prefix="/api/v1/documents", tags=["documents"])
-    app.include_router(sessions.router, prefix="/api/v1/sessions", tags=["sessions"])
     app.include_router(voice_ws.router, prefix="/api/v1/voice", tags=["voice"])
 
     # Serve static files

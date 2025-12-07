@@ -1,6 +1,6 @@
 """API routers."""
 
-from . import customers, documents, sessions
+from . import customers, documents
 
-__all__ = ["customers", "documents", "sessions"]
+__all__ = ["customers", "documents"]
 

@@ -786,13 +786,26 @@
         }
 
         /* Flow Builder Preview */
+        .flow-builder-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 16px;
+            align-items: start;
+        }
+
+        @media (max-width: 1200px) {
+            .flow-builder-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .flow-canvas {
             background: var(--bg-tertiary);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
-            min-height: 400px;
+            min-height: 420px;
             position: relative;
-            overflow: hidden;
+            overflow: auto;
         }
 
         .flow-placeholder {
@@ -901,6 +914,71 @@
             stroke: var(--text-muted);
             stroke-width: 2;
             fill: none;
+        }
+
+        .flow-inspector {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            min-height: 420px;
+        }
+
+        .flow-inspector .section-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .flow-inspector .hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .flow-inspector .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 999px;
+            padding: 6px 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+        }
+
+        .flow-inspector .flow-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 12px 0;
+        }
+
+        .connection-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .connection-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 8px;
+            align-items: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 8px;
+        }
+
+        .connection-row .target {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .connection-row button {
+            color: var(--error);
         }
 
         /* Loading state */
@@ -1410,13 +1488,42 @@
                             </button>
                         </div>
 
-                        <div class="flow-canvas" id="flowCanvas">
-                            <svg class="flow-connections" id="flowConnections"></svg>
-                            <div class="flow-placeholder" id="flowPlaceholder">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                                </svg>
-                                <p>Click "Start" to begin building your flow</p>
+                        <div class="flow-builder-grid">
+                            <div class="flow-canvas" id="flowCanvas">
+                                <svg class="flow-connections" id="flowConnections"></svg>
+                                <div class="flow-placeholder" id="flowPlaceholder">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                    </svg>
+                                    <p>Click "Start" to begin building your flow</p>
+                                </div>
+                            </div>
+
+                            <div class="flow-inspector">
+                                <div id="inspectorEmpty" class="hint">Select a node to edit its details</div>
+                                <div id="inspectorBody" class="hidden">
+                                    <div class="section-title">Node details</div>
+                                    <div class="pill" id="flowNodeType"></div>
+                                    <div class="form-group" style="margin-top: 8px;">
+                                        <label class="form-label">Label</label>
+                                        <input id="flowNodeLabelInput" class="form-input" type="text" placeholder="e.g. Ask for name">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Content / Prompt</label>
+                                        <textarea id="flowNodeContentInput" class="form-textarea" rows="4" placeholder="What should the bot say or ask?"></textarea>
+                                    </div>
+                                    <div class="flow-actions">
+                                        <button class="btn btn-secondary" id="startConnectionBtn" type="button" onclick="startConnection()">
+                                            Start connection
+                                        </button>
+                                        <button class="btn btn-ghost" type="button" onclick="deleteSelectedNode()" style="color: var(--error);">
+                                            Delete node
+                                        </button>
+                                    </div>
+                                    <div class="section-title" style="margin-top: 12px;">Connections</div>
+                                    <div class="hint" id="connectHint">Select "Start connection", then click another node.</div>
+                                    <div class="connection-list" id="connectionList"></div>
+                                </div>
                             </div>
                         </div>
 
@@ -1493,6 +1600,7 @@
         let flowNodes = [];
         let flowEdges = [];
         let selectedNode = null;
+        let connectionSource = null;
         let nodeIdCounter = 0;
 
         // Initialize
@@ -1790,9 +1898,11 @@
                     // Update flow
                     document.getElementById('flowEnabled').checked = currentBot.flow_enabled;
                     if (currentBot.flow_config) {
-                        flowNodes = currentBot.flow_config.nodes || [];
-                        flowEdges = currentBot.flow_config.edges || [];
+                        flowNodes = Array.isArray(currentBot.flow_config.nodes) ? currentBot.flow_config.nodes : [];
+                        flowEdges = Array.isArray(currentBot.flow_config.edges) ? currentBot.flow_config.edges : [];
+                        syncNodeCounter();
                         renderFlowNodes();
+                        selectNode(flowNodes[0]?.id || null);
                     } else {
                         flowNodes = [];
                         flowEdges = [];
@@ -1898,6 +2008,10 @@
             if (enabled && flowNodes.length === 0) {
                 addFlowNode('start');
             }
+            if (!enabled) {
+                connectionSource = null;
+                selectNode(null);
+            }
         }
 
         function addFlowNode(type) {
@@ -1931,18 +2045,25 @@
             };
             
             flowNodes.push(node);
+            selectNode(nodeId);
             renderFlowNodes();
         }
 
         function renderFlowNodes() {
             const canvas = document.getElementById('flowCanvas');
             const placeholder = document.getElementById('flowPlaceholder');
+            const connections = document.getElementById('flowConnections');
             
             // Clear existing nodes (keep SVG and placeholder)
             canvas.querySelectorAll('.flow-node').forEach(n => n.remove());
+            if (connections) {
+                connections.innerHTML = '';
+            }
             
             if (flowNodes.length === 0) {
                 placeholder.style.display = 'block';
+                selectedNode = null;
+                updateInspector();
                 return;
             }
             
@@ -1963,9 +2084,21 @@
                 
                 // Make draggable
                 el.onmousedown = (e) => startDrag(e, node);
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (connectionSource && connectionSource !== node.id) {
+                        addFlowEdge(connectionSource, node.id);
+                        connectionSource = null;
+                        highlightConnecting();
+                    }
+                    selectNode(node.id);
+                });
+                el.classList.toggle('selected', selectedNode?.id === node.id);
                 
                 canvas.appendChild(el);
             });
+
+            renderConnections();
         }
 
         let dragNode = null;
@@ -1978,6 +2111,7 @@
                 x: e.clientX - el.offsetLeft,
                 y: e.clientY - el.offsetTop
             };
+            selectNode(node.id);
             
             document.addEventListener('mousemove', onDrag);
             document.addEventListener('mouseup', stopDrag);
@@ -1997,6 +2131,7 @@
             const el = document.getElementById(dragNode.id);
             el.style.left = dragNode.position.x + 'px';
             el.style.top = dragNode.position.y + 'px';
+            renderConnections();
         }
 
         function stopDrag() {
@@ -2004,6 +2139,206 @@
             document.removeEventListener('mousemove', onDrag);
             document.removeEventListener('mouseup', stopDrag);
         }
+
+        function renderConnections() {
+            const canvas = document.getElementById('flowCanvas');
+            const svg = document.getElementById('flowConnections');
+            if (!svg || !canvas) return;
+            svg.innerHTML = '';
+
+            const canvasRect = canvas.getBoundingClientRect();
+            const connectionColor = (getComputedStyle(document.documentElement).getPropertyValue('--text-muted') || '#9CA3AF').trim() || '#9CA3AF';
+
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+            marker.setAttribute('id', 'arrowhead');
+            marker.setAttribute('markerWidth', '10');
+            marker.setAttribute('markerHeight', '7');
+            marker.setAttribute('refX', '10');
+            marker.setAttribute('refY', '3.5');
+            marker.setAttribute('orient', 'auto');
+            const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            arrow.setAttribute('points', '0 0, 10 3.5, 0 7');
+            arrow.setAttribute('fill', connectionColor);
+            marker.appendChild(arrow);
+            defs.appendChild(marker);
+            svg.appendChild(defs);
+
+            flowEdges.forEach(edge => {
+                const sourceEl = document.getElementById(edge.source);
+                const targetEl = document.getElementById(edge.target);
+                if (!sourceEl || !targetEl) return;
+
+                const sRect = sourceEl.getBoundingClientRect();
+                const tRect = targetEl.getBoundingClientRect();
+
+                const start = {
+                    x: sRect.left - canvasRect.left + sRect.width / 2 + canvas.scrollLeft,
+                    y: sRect.top - canvasRect.top + sRect.height + canvas.scrollTop
+                };
+                const end = {
+                    x: tRect.left - canvasRect.left + tRect.width / 2 + canvas.scrollLeft,
+                    y: tRect.top - canvasRect.top + canvas.scrollTop
+                };
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const controlOffset = 40;
+                path.setAttribute('d', `M ${start.x} ${start.y} C ${start.x} ${start.y + controlOffset} ${end.x} ${end.y - controlOffset} ${end.x} ${end.y}`);
+                path.setAttribute('class', 'flow-line');
+                path.setAttribute('marker-end', 'url(#arrowhead)');
+                svg.appendChild(path);
+            });
+        }
+
+        function selectNode(nodeId) {
+            selectedNode = flowNodes.find(n => n.id === nodeId) || null;
+            document.querySelectorAll('.flow-node').forEach(el => {
+                el.classList.toggle('selected', selectedNode?.id === el.id);
+            });
+            updateInspector();
+        }
+
+        function startConnection() {
+            if (!selectedNode) {
+                showToast('Select a node first', 'error');
+                return;
+            }
+            connectionSource = selectedNode.id;
+            highlightConnecting();
+        }
+
+        function highlightConnecting() {
+            const hint = document.getElementById('connectHint');
+            const btn = document.getElementById('startConnectionBtn');
+            if (!hint || !btn) return;
+
+            if (connectionSource) {
+                hint.textContent = `Connecting from "${selectedNode?.label}". Click another node to finish.`;
+                btn.textContent = 'Connecting…';
+                btn.disabled = true;
+            } else {
+                hint.textContent = 'Select "Start connection", then click another node.';
+                btn.textContent = 'Start connection';
+                btn.disabled = false;
+            }
+        }
+
+        function addFlowEdge(sourceId, targetId) {
+            const exists = flowEdges.some(e => e.source === sourceId && e.target === targetId);
+            if (exists) {
+                showToast('Connection already exists', 'error');
+                return;
+            }
+            const edgeId = `edge_${Date.now()}_${Math.random().toString(16).slice(2, 6)}`;
+            flowEdges.push({
+                id: edgeId,
+                source: sourceId,
+                target: targetId,
+                label: ''
+            });
+            renderConnections();
+            updateInspector();
+        }
+
+        function deleteSelectedNode() {
+            if (!selectedNode) return;
+            flowEdges = flowEdges.filter(e => e.source !== selectedNode.id && e.target !== selectedNode.id);
+            flowNodes = flowNodes.filter(n => n.id !== selectedNode.id);
+            selectedNode = null;
+            connectionSource = null;
+            renderFlowNodes();
+            updateInspector();
+        }
+
+        function deleteEdge(edgeId) {
+            flowEdges = flowEdges.filter(e => e.id !== edgeId);
+            renderConnections();
+            updateInspector();
+        }
+
+        function updateInspector() {
+            const empty = document.getElementById('inspectorEmpty');
+            const body = document.getElementById('inspectorBody');
+            const labelInput = document.getElementById('flowNodeLabelInput');
+            const contentInput = document.getElementById('flowNodeContentInput');
+            const typePill = document.getElementById('flowNodeType');
+            const connectionList = document.getElementById('connectionList');
+
+            if (!selectedNode) {
+                empty?.classList.remove('hidden');
+                body?.classList.add('hidden');
+                connectionSource = null;
+                highlightConnecting();
+                return;
+            }
+
+            empty?.classList.add('hidden');
+            body?.classList.remove('hidden');
+
+            if (labelInput) labelInput.value = selectedNode.label || '';
+            if (contentInput) contentInput.value = selectedNode.content || '';
+            if (typePill) typePill.textContent = selectedNode.type.charAt(0).toUpperCase() + selectedNode.type.slice(1);
+
+            if (connectionList) {
+                connectionList.innerHTML = '';
+                const outgoing = flowEdges.filter(e => e.source === selectedNode.id);
+                if (outgoing.length === 0) {
+                    const hint = document.createElement('div');
+                    hint.className = 'hint';
+                    hint.textContent = 'No outgoing connections yet.';
+                    connectionList.appendChild(hint);
+                } else {
+                    outgoing.forEach(edge => {
+                        const row = document.createElement('div');
+                        row.className = 'connection-row';
+                        const targetNode = flowNodes.find(n => n.id === edge.target);
+                        row.innerHTML = `
+                            <div class="target">${escapeHtml(targetNode?.label || 'Unlinked')}</div>
+                            <input class="form-input" type="text" value="${edge.label || ''}" placeholder="Label (optional)">
+                            <button class="btn btn-ghost btn-sm" type="button">Remove</button>
+                        `;
+                        const input = row.querySelector('input');
+                        input?.addEventListener('input', (e) => {
+                            edge.label = e.target.value;
+                        });
+                        const removeBtn = row.querySelector('button');
+                        removeBtn?.addEventListener('click', () => deleteEdge(edge.id));
+                        connectionList.appendChild(row);
+                    });
+                }
+            }
+
+            highlightConnecting();
+        }
+
+        function syncNodeCounter() {
+            const maxId = flowNodes.reduce((max, node) => {
+                const num = parseInt(node.id.replace('node_', ''), 10);
+                return Number.isFinite(num) ? Math.max(max, num) : max;
+            }, 0);
+            nodeIdCounter = Math.max(nodeIdCounter, maxId);
+        }
+
+        // Bind inspector inputs
+        document.getElementById('flowNodeLabelInput')?.addEventListener('input', (e) => {
+            if (!selectedNode) return;
+            selectedNode.label = e.target.value;
+            renderFlowNodes();
+        });
+
+        document.getElementById('flowNodeContentInput')?.addEventListener('input', (e) => {
+            if (!selectedNode) return;
+            selectedNode.content = e.target.value;
+            renderFlowNodes();
+        });
+
+        document.getElementById('flowCanvas')?.addEventListener('click', (e) => {
+            if (e.target.id === 'flowCanvas' || e.target.id === 'flowConnections' || e.target.id === 'flowPlaceholder') {
+                connectionSource = null;
+                selectNode(null);
+                highlightConnecting();
+            }
+        });
 
         // Utils
         function escapeHtml(str) {

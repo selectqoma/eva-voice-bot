@@ -10,6 +10,7 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from starlette.websockets import WebSocketState
 from groq import AsyncGroq
 from deepgram import DeepgramClient, LiveTranscriptionEvents, LiveOptions
 from elevenlabs import AsyncElevenLabs
@@ -19,9 +20,22 @@ from ...config import get_settings
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# System prompt for Eva
-SYSTEM_PROMPT = """You are Eva, a friendly voice assistant from test-voice-bot. 
-Be warm but brief. One short sentence max. No filler words. Direct, helpful answers."""
+# System prompt for Eva (Moving Company receptionist)
+SYSTEM_PROMPT = """You are Eva, the receptionist at The Moving Company, a Belgian moving company.
+You can speak in Dutch, French or English, but English is the default language. Do not switch language unless necessary.
+If the client speaks Dutch or French, switch to their language and ask how you can be of service.
+You talk quickly and concisely, but stay polite and professional—your job is to solve the customer's problem.
+You help customers with moving services by asking direct questions to gather information efficiently.
+Ask direct questions to gather moving information: 'From where to where do you want to move?', 'Do you need the lift?', 'When do you want to move?', 'How many rooms?', etc.
+Keep responses short and focused on getting the information you need. Ask only ONE question per response.
+Wait for the customer's answer before asking the next question. Keep responses super short and direct. No long explanations.
+Be professional and straightforward throughout the conversation.
+If the query doesn't concern moving or anything related to The Moving Company, politely decline and say 'I'm sorry, I can only help with moving services.'
+Make sure to understand from the customer where they want to move to and from. Make sure there are real cities.
+Ask for their name and email, very important, and repeat them back for confirmation.
+Ask the client if you can call them back to the number they're calling from.
+If the client hasn't answered the question, wait and then ask again if needed—don't rush the client.
+Greet users with 'Hi, I'm Eva from Movers.be, how can I help you?'"""
 
 # Use faster 8B model
 GROQ_MODEL = "llama-3.1-8b-instant"
@@ -93,21 +107,25 @@ class VoicePipeline:
     
     async def _send_greeting(self):
         """Send initial greeting when conversation starts."""
-        greeting = "Hi, I'm Eva from test-voice-bot. How can I help you?"
+        greeting = "Hi, I'm Eva from Movers.be, how can I help you?"
         
         try:
-            await self.websocket.send_json({"type": "status", "status": "speaking"})
-            await self.websocket.send_json({"type": "response", "text": greeting})
+            if not self._is_connected():
+                return
+            await self._safe_send_json({"type": "status", "status": "speaking"})
+            await self._safe_send_json({"type": "response", "text": greeting})
             
             self.conversation_history.append({"role": "assistant", "content": greeting})
             
             audio_bytes = await self._generate_tts(greeting)
             await self._send_audio(audio_bytes)
             
-            await self.websocket.send_json({"type": "audio_end"})
-            await self.websocket.send_json({"type": "status", "status": "listening"})
+            await self._safe_send_json({"type": "audio_end"})
+            await self._safe_send_json({"type": "status", "status": "listening"})
             
             logger.info("Sent greeting")
+        except WebSocketDisconnect:
+            logger.info("WebSocket disconnected during greeting")
         except Exception as e:
             logger.error(f"Error sending greeting: {e}")
     
@@ -126,7 +144,7 @@ class VoicePipeline:
                 self.current_transcript = transcript
                 
                 try:
-                    await self.websocket.send_json({
+                    await self._safe_send_json({
                         "type": "transcript",
                         "text": transcript,
                         "is_final": is_final
@@ -151,11 +169,7 @@ class VoicePipeline:
     
     async def _on_close(self, *args, **kwargs):
         """Handle Deepgram connection close."""
-        logger.info("Deepgram connection closed, reconnecting...")
-        try:
-            await self.initialize()
-        except Exception as e:
-            logger.error(f"Failed to reconnect to Deepgram: {e}")
+        logger.info("Deepgram connection closed")
     
     async def _process_utterance(self, text: str):
         """Process a complete utterance through LLM and TTS."""
@@ -170,35 +184,44 @@ class VoicePipeline:
             if len(self.conversation_history) > 20:
                 self.conversation_history = self.conversation_history[-20:]
             
-            await self.websocket.send_json({"type": "status", "status": "thinking"})
-            
-            messages = [{"role": "system", "content": SYSTEM_PROMPT}] + self.conversation_history
-            
-            response = await self.groq.chat.completions.create(
-                model=GROQ_MODEL,
-                messages=messages,
-                temperature=0.5,
-                max_tokens=40,
-                stream=False,
-            )
-            
-            assistant_text = response.choices[0].message.content.strip()
+            await self._safe_send_json({"type": "status", "status": "thinking"})
+
+            intent = self._detect_intent(text)
+
+            if intent == "human":
+                assistant_text = (
+                    "I'll connect you to a human representative. Please share your name and phone number so we can reach you."
+                )
+            elif intent == "calendar":
+                assistant_text = (
+                    "Sure, I can schedule your move. What date and time work for you, and what's the pickup and drop-off address?"
+                )
+            else:
+                messages = [{"role": "system", "content": SYSTEM_PROMPT}] + self.conversation_history
+                response = await self.groq.chat.completions.create(
+                    model=GROQ_MODEL,
+                    messages=messages,
+                    temperature=0.5,
+                    max_tokens=60,
+                    stream=False,
+                )
+                assistant_text = response.choices[0].message.content.strip()
             self.conversation_history.append({"role": "assistant", "content": assistant_text})
             
-            await self.websocket.send_json({"type": "response", "text": assistant_text})
-            await self.websocket.send_json({"type": "status", "status": "speaking"})
+            await self._safe_send_json({"type": "response", "text": assistant_text})
+            await self._safe_send_json({"type": "status", "status": "speaking"})
             
             audio_bytes = await self._generate_tts(assistant_text)
             await self._send_audio(audio_bytes)
             
             logger.info(f"Sent {len(audio_bytes)} bytes of audio")
             
-            await self.websocket.send_json({"type": "audio_end"})
-            await self.websocket.send_json({"type": "status", "status": "listening"})
+            await self._safe_send_json({"type": "audio_end"})
+            await self._safe_send_json({"type": "status", "status": "listening"})
             
         except Exception as e:
             logger.error(f"Error processing utterance: {e}")
-            await self.websocket.send_json({"type": "error", "message": str(e)})
+            await self._safe_send_json({"type": "error", "message": str(e)})
         finally:
             self.is_processing = False
     
@@ -219,7 +242,7 @@ class VoicePipeline:
         """Send audio bytes to the client - send all at once for smoother playback."""
         # Send as one chunk to avoid gaps between chunks
         audio_b64 = base64.b64encode(audio_bytes).decode('utf-8')
-        await self.websocket.send_json({"type": "audio", "data": audio_b64})
+        await self._safe_send_json({"type": "audio", "data": audio_b64})
     
     async def send_audio(self, audio_data: bytes):
         """Send audio data to Deepgram for transcription."""
@@ -233,8 +256,35 @@ class VoicePipeline:
         """Clean up connections."""
         if self.dg_connection:
             await self.dg_connection.finish()
-        if self.elevenlabs:
-            await self.elevenlabs.close()
+
+    def _is_connected(self) -> bool:
+        """Check whether the websocket is still connected."""
+        return self.websocket.application_state == WebSocketState.CONNECTED
+
+    async def _safe_send_json(self, payload: dict) -> bool:
+        """Attempt to send JSON, ignoring disconnects."""
+        if not self._is_connected():
+            return False
+        try:
+            await self.websocket.send_json(payload)
+            return True
+        except WebSocketDisconnect:
+            return False
+        except RuntimeError:
+            # Happens if ASGI channel already closed; ignore
+            return False
+        except Exception as e:
+            logger.debug(f"Error sending websocket message: {e}")
+            return False
+
+    def _detect_intent(self, text: str) -> str:
+        """Lightweight intent routing: info | calendar | human."""
+        t = text.lower()
+        if any(k in t for k in ["human", "agent", "representative", "person", "someone", "call me"]):
+            return "human"
+        if any(k in t for k in ["calendar", "schedule", "booking", "appointment", "date", "time slot", "when can", "book"]):
+            return "calendar"
+        return "info"
 
 
 @router.websocket("/stream")
